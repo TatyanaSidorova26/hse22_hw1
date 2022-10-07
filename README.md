@@ -54,11 +54,11 @@ multiqc -o multiqc_trm fastqc_trm
 
 8. Сбор контигов:
 ```
-time platanus assemble -o Poil -f sub1.fastq.trm sub2.fastq.trm 2> assemble.log
+platanus assemble -f sub1.fastq.trimmed  sub2.fastq.trimmed -o aaa
 ```
 9. Сбор скаффолдов:
 ```
-time platanus scaffold -o Poil -c Poil_contig.fa -IP1 sub1.fastq.trm sub2.fastq.trm -OP2 matep1.fastq.int_trm matep2.fastq.int_trm 2> scaffold.log
+platanus scaffold -c aaa_contig.fa -IP1 sub1.fastq.trimmed sub2.fastq.trimmed -OP2 matep1.fastq.int_trimmed matep2.fastq.int_trimmed -o aaa
 ```
 10. Удаление исходных файлов:
 ```
@@ -68,4 +68,103 @@ rm sub* matep*
 ```
 rm sub*.trm matep*.int_trm
 ```
+##Colab
+1. импорт библиотек
+```
+import re
+```
+2. функция для получения данных
+```
+def get_info(f, text, output = True):
+    lengths = []
+    total_len = 0
+    num = 0
+    max_len = 0
+    length = 0
+    score = 0
+    max_sequence = ''
+    curr_sequence = ''
+    for line in f:
+        if (line[0] == '>'):
+            if num != 0:
+                lengths.append(length)
+            num += 1
+            if length >= max_len:
+                max_len = length
+                max_sequence = curr_sequence
+            curr_sequence = ''
+            length = 0
+        else:
+            curr_sequence += line.strip()
+            length += len(line.strip())
+            total_len += len(line.strip())
+     
+    lengths.sort(reverse = True) 
+    for i in lengths:
+        score += i
+        if score >= total_len / 2:
+            if output == True:
+                print(f'Анализ {text}\n\
+Общее количество: {num},\n\
+Общая длина: {total_len},\n\
+Длина самого длинного: {max_len},\n\
+N50: {i}\n')
+            break
+    return max_sequence
+```
+3. информация о контигах:
+```
+max_cont = get_info(open('aaa_contig.fa', 'r'), 'Контигов')
+```
+Анализ Контигов
+
+Общее количество: 614,
+
+Общая длина: 3925500,
+
+Длина самого длинного: 179307,
+
+N50: 55038
+
+4. ..о скаффолдах:
+```
+max_scaf = get_info(open('aaa_scaffold.fa', 'r'), 'Скаффолдов')
+```
+Анализ Скаффолдов
+
+Общее количество: 66,
+
+Общая длина: 3876492,
+
+Длина самого длинного: 3838403,
+
+N50: 3838403
+
+5. подсчет гэпов: 
+```
+print(f'Общая длина гэпов: {max_scaf.count("N")}')
+max_scaf = re.sub(r'N{2,}', 'N', max_scaf)
+print(f'Число гэпов: {max_scaf.count("N")}')
+```
+Общая длина гэпов: 7048
+
+Число гэпов: 58
+
+6. сокращение гэпов:
+```
+platanus gap_close -c aaa_scaffold.fa -IP1 sub1.fastq.trimmed sub2.fastq.trimmed -OP2 matep1.fastq.int_trimmed matep2.fastq.int_trimmed -o aaa
+```
+7. открываем файл с подрезанынми чтениями:
+```
+max_scaf = get_info(open('aaa_gapClosed.fa', 'r'), 'Скаффолдов', False)
+```
+8. подсчет гэпов для подрезанных чтений:
+```
+print(f'Общая длина гэпов для обрезанных чтений: {max_scaf.count("N")}')
+max_scaf = re.sub(r'N{2,}', 'N', max_scaf)
+print(f'Число гэпов для обрезанных чтений: {max_scaf.count("N")}')
+```
+Общая длина гэпов для обрезанных чтений: 1471
+
+Число гэпов для обрезанных чтений: 7
 
