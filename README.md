@@ -68,7 +68,7 @@ rm sub* matep*
 ```
 rm sub*.trm matep*.int_trm
 ```
-##Colab
+## Colab
 1. импорт библиотек
 ```
 import re
